@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>汉语 AI Tutor — Free HSK 1–3</title>
+<style>
+  :root {
+    --gold: #BA7517; --gold-light: #FAEEDA; --gold-dark: #633806;
+    --green: #0F6E56; --green-light: #E1F5EE; --green-dark: #04342C;
+    --red: #A32D2D; --red-light: #FCEBEB;
+    --bg: #FAFAF8; --surface: #FFFFFF; --surface2: #F4F2ED;
+    --text: #1C1A17; --text2: #6B6760; --text3: #A8A49E;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --radius: 14px; --radius-sm: 8px; --radius-pill: 999px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --font: 'Noto Sans', 'Segoe UI', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --gold: #EF9F27; --gold-light: #2A1F0A; --gold-dark: #FAEEDA;
+      --green-light: #04342C; --green-dark: #9FE1CB;
+      --red-light: #2A0A0A;
+      --bg: #17160F; --surface: #201E16; --surface2: #2A2820;
+      --text: #F0EDE6; --text2: #A8A49E; --text3: #6B6760;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+      --shadow: 0 2px 16px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100dvh; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
+  button { font-family: var(--font); cursor: pointer; }
+  input { font-family: var(--font); }
+
+  /* SCREENS */
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* SETUP SCREEN */
+  #setup { align-items: center; justify-content: center; padding: 28px 24px; gap: 20px; }
+  .setup-logo { font-size: 52px; line-height: 1; }
+  .setup-title { font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+  .setup-sub { font-size: 14px; color: var(--text2); text-align: center; line-height: 1.6; }
+  .setup-card { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .setup-card label { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
+  .setup-card input { width: 100%; padding: 11px 14px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; background: var(--surface2); color: var(--text); outline: none; }
+  .setup-card input:focus { border-color: var(--gold); }
+  .setup-hint { font-size: 11px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+  .setup-hint a { color: var(--gold); text-decoration: none; }
+  .btn-primary { width: 100%; padding: 14px; background: var(--gold); color: #fff; border: none; border-radius: var(--radius-pill); font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
+  .btn-primary:active { opacity: .85; }
+
+  /* HOME SCREEN */
+  #home { overflow-y: auto; }
+  .home-header { padding: 18px 16px 12px; border-bottom: 1px solid var(--border); }
+  .home-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .app-name { font-size: 18px; font-weight: 700; color: var(--text); }
+  .badge { font-size: 10px; padding: 3px 9px; border-radius: var(--radius-pill); background: var(--gold-light); color: var(--gold-dark); font-weight: 600; }
+  .settings-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ctrl-label { font-size: 11px; color: var(--text3); }
+  .pill { padding: 5px 12px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; border: 1px solid var(--border2); background: var(--surface2); color: var(--text2); }
+  .pill.on { background: var(--gold); color: #fff; border-color: var(--gold); }
+  .pill.on-green { background: var(--green); color: #fff; border-color: var(--green); }
+  .divider { width: 1px; height: 16px; background: var(--border2); }
+  .hsk-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .hsk-tab { flex: 1; padding: 12px 0; text-align: center; background: none; border: none; font-size: 13px; font-weight: 500; color: var(--text3); border-bottom: 2.5px solid transparent; }
+  .hsk-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .progress-bar-wrap { padding: 10px 16px 0; }
+  .progress-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width .4s ease; }
+  .progress-label { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .chapters-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px 24px; }
+  .chapter-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 12px; cursor: pointer; transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden; }
+  .chapter-card:active { transform: scale(.97); }
+  .chapter-card.locked { opacity: .45; cursor: not-allowed; }
+  .chapter-card.active { border: 2px solid var(--gold); }
+  .chapter-card.mastered { background: var(--green-light); border-color: transparent; }
+  .ch-ico { font-size: 22px; line-height: 1; margin-bottom: 6px; }
+  .ch-num { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+  .ch-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 6px; }
+  .ch-status { font-size: 11px; }
+  .ch-status.s-active { color: var(--gold); }
+  .ch-status.s-locked { color: var(--text3); }
+  .ch-status.s-mastered { color: var(--green); }
+  .mastered-badge { position: absolute; top: 8px; right: 8px; font-size: 14px; }
+  .how-to { margin: 0 16px 24px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .how-to-title { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .4px; }
+  .how-to-steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .how-step { font-size: 11px; color: var(--text3); }
+  .how-arrow { font-size: 10px; color: var(--text3); }
+
+  /* LESSON SCREEN */
+  #lesson { overflow: hidden; }
+  .lesson-header { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; background: var(--surface); }
+  .back-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .lesson-info { flex: 1; min-width: 0; }
+  .lesson-title { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lesson-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .hsk-badge { background: var(--gold-light); color: var(--gold-dark); padding: 3px 10px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .vocab-strip { display: flex; gap: 6px; padding: 7px 12px; overflow-x: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; scrollbar-width: none; }
+  .vocab-strip::-webkit-scrollbar { display: none; }
+  .vocab-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 4px 11px; font-size: 11px; white-space: nowrap; color: var(--text2); cursor: pointer; }
+  .vocab-chip:active { background: var(--gold-light); border-color: var(--gold); color: var(--gold-dark); }
+  .chat-area { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 84%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.6; }
+  .msg.ai { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 4px 16px 16px 16px; color: var(--text); }
+  .msg.user { align-self: flex-end; background: var(--gold); color: #fff; border-radius: 16px 4px 16px 16px; }
+  .typing { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 4px 16px 16px 16px; padding: 12px 18px; }
+  .typing span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--text3); animation: bounce .9s infinite; }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+  .action-bar { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
+  .action-btn { width: 100%; padding: 11px 14px; font-size: 13px; font-weight: 600; border: none; border-bottom: 1px solid var(--border); }
+  .action-btn.quiz { background: var(--gold-light); color: var(--gold-dark); }
+  .action-btn.pass { background: var(--green-light); color: var(--green-dark); }
+  .action-btn.fail { background: var(--red-light); color: var(--red); }
+  .input-row { display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
+  .mic-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border2); background: var(--surface2); font-size: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .mic-btn.listening { background: var(--red-light); border-color: var(--red); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(163,45,45,0.3)} 50%{box-shadow:0 0 0 8px rgba(163,45,45,0)} }
+  .text-input { flex: 1; padding: 11px 14px; border-radius: var(--radius-pill); background: var(--surface2); border: 1px solid var(--border); font-size: 14px; color: var(--text); outline: none; }
+  .text-input:focus { border-color: var(--gold); }
+  .send-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--gold); border: none; color: #fff; font-size: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .send-btn:active { opacity: .85; }
+  .hint-text { text-align: center; font-size: 10px; color: var(--text3); padding: 0 12px 8px; }
+  .turns-progress { height: 3px; background: var(--surface2); }
+  .turns-fill { height: 100%; background: var(--gold); transition: width .3s; }
+
+  /* MODAL */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: flex-end; justify-content: center; z-index: 100; }
+  .modal-bg.hidden { display: none; }
+  .modal { background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; padding: 24px; width: 100%; max-width: 480px; }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .modal-input { width: 100%; padding: 11px 14px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; background: var(--surface2); color: var(--text); outline: none; margin-bottom: 8px; }
+  .modal-hint { font-size: 11px; color: var(--text3); margin-bottom: 16px; line-height: 1.5; }
+  .modal-hint a { color: var(--gold); }
+  .modal-btns { display: flex; gap: 8px; }
+  .modal-btns button { flex: 1; padding: 12px; border-radius: var(--radius-pill); font-size: 14px; font-weight: 600; border: none; }
+  .modal-cancel { background: var(--surface2); color: var(--text2); }
+  .modal-save { background: var(--gold); color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup" class="screen active">
+  <div class="setup-logo">🀄</div>
+  <div class="setup-title">汉语 AI Tutor</div>
+  <div class="setup-sub">Free HSK 1–3 Chinese learning with<br>AI voice conversation</div>
+  <div class="setup-card">
+    <label>Google Gemini API Key (Free)</label>
+    <input type="password" id="api-key-input" placeholder="AIza..."/>
+    <div class="setup-hint">
+      Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a><br>
+      1,500 free requests/day · No credit card needed<br>
+      Your key is saved only on your device.
+    </div>
+  </div>
+  <button class="btn-primary" onclick="startApp()">Start Learning →</button>
+  <div style="font-size:11px;color:var(--text3);text-align:center;line-height:1.6">Works on Chrome (Android/iPhone/PC)<br>Voice input requires Chrome browser</div>
+</div>
+
+<!-- HOME SCREEN -->
+<div id="home" class="screen">
+  <div class="home-header">
+    <div class="home-header-top">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="app-name">汉语 AI Tutor</span>
+        <span class="badge">Free · Pingo-style</span>
+      </div>
+      <button class="settings-btn" onclick="openSettings()">⚙️</button>
+    </div>
+    <div class="controls">
+      <span class="ctrl-label">Voice:</span>
+      <button class="pill" id="pill-female" onclick="setGender('female')">♀ Female</button>
+      <button class="pill" id="pill-male" onclick="setGender('male')">♂ Male</button>
+      <div class="divider"></div>
+      <span class="ctrl-label">Teacher:</span>
+      <button class="pill" id="pill-normal" onclick="setChar('normal')">Friendly</button>
+      <button class="pill" id="pill-strict" onclick="setChar('strict')">Strict</button>
+    </div>
+  </div>
+  <div class="hsk-tabs">
+    <button class="hsk-tab" id="tab-1" onclick="setHsk(1)">HSK 1 <span id="p1"></span></button>
+    <button class="hsk-tab" id="tab-2" onclick="setHsk(2)">HSK 2 <span id="p2"></span></button>
+    <button class="hsk-tab" id="tab-3" onclick="setHsk(3)">HSK 3 <span id="p3"></span></button>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="level-progress"></div></div>
+    <div class="progress-label" id="level-label"></div>
+  </div>
+  <div class="chapters-grid" id="chapters-grid"></div>
+  <div class="how-to">
+    <div class="how-to-title">How to unlock chapters</div>
+    <div class="how-to-steps">
+      <span class="how-step">Chat 5 turns</span>
+      <span class="how-arrow">→</span>
+      <span class="how-step">Take quiz</span>
+      <span class="how-arrow">→</span>
+      <span class="how-step">Pass (2/3)</span>
+      <span class="how-arrow">→</span>
+      <span class="how-step">Next unlocks ✓</span>
+    </div>
+  </div>
+</div>
+
+<!-- LESSON SCREEN -->
+<div id="lesson" class="screen">
+  <div class="lesson-header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="lesson-info">
+      <div class="lesson-title" id="lesson-title">Greetings</div>
+      <div class="lesson-sub" id="lesson-sub">0/5 practice turns</div>
+    </div>
+    <div class="hsk-badge" id="lesson-badge">HSK 1</div>
+  </div>
+  <div class="turns-progress"><div class="turns-fill" id="turns-fill" style="width:0%"></div></div>
+  <div class="vocab-strip" id="vocab-strip"></div>
+  <div class="chat-area" id="chat-area"></div>
+  <div class="action-bar">
+    <button class="action-btn quiz hidden" id="quiz-btn" onclick="startQuiz()">📝 Ready for quiz! Tap to unlock next chapter →</button>
+    <button class="action-btn pass hidden" id="pass-btn" onclick="completeChapter()">✓ Passed! Unlock next chapter →</button>
+    <button class="action-btn fail hidden" id="fail-btn" onclick="retryLesson()">✕ Quiz failed — keep practicing, then retry</button>
+    <div class="input-row">
+      <button class="mic-btn" id="mic-btn" onmousedown="startListen()" onmouseup="stopListen()" ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">🎤</button>
+      <input class="text-input" id="text-input" placeholder="Type or hold 🎤 to speak…" onkeydown="handleKey(event)"/>
+      <button class="send-btn" onclick="sendMsg()">↑</button>
+    </div>
+    <div class="hint-text" id="hint-text">Hold mic = voice input · Tap vocab chips above to practice them</div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg hidden" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">⚙️ Settings</div>
+    <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Google Gemini API Key</label>
+    <input class="modal-input" type="password" id="modal-key" placeholder="AIza..."/>
+    <div class="modal-hint">Get free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a><br>Saved locally on your device only.</div>
+    <button style="width:100%;padding:11px;background:var(--red-light);color:var(--red);border:none;border-radius:var(--radius-sm);font-size:13px;margin-bottom:14px;cursor:pointer" onclick="resetProgress()">🗑️ Reset all progress</button>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModalBtn()">Cancel</button>
+      <button class="modal-save" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CUR = {
+  1:[
+    {id:"1-1",title:"Greetings",ico:"👋",vocab:["你好(nǐ hǎo)–Hello","再见(zàijiàn)–Goodbye","谢谢(xièxie)–Thank you","不客气(bú kèqi)–You're welcome","对不起(duìbuqǐ)–Sorry","没关系(méi guānxi)–No problem"]},
+    {id:"1-2",title:"Numbers 1–10",ico:"🔢",vocab:["一(yī)–1","二(èr)–2","三(sān)–3","四(sì)–4","五(wǔ)–5","六(liù)–6","七(qī)–7","八(bā)–8","九(jiǔ)–9","十(shí)–10"]},
+    {id:"1-3",title:"Family",ico:"👨‍👩‍👧",vocab:["爸爸(bàba)–father","妈妈(māma)–mother","哥哥(gēge)–older brother","姐姐(jiějie)–older sister","弟弟(dìdi)–younger brother","妹妹(mèimei)–younger sister"]},
+    {id:"1-4",title:"Colors & Things",ico:"🎨",vocab:["红(hóng)–red","白(bái)–white","黑(hēi)–black","书(shū)–book","水(shuǐ)–water","饭(fàn)–food"]},
+    {id:"1-5",title:"Time & Dates",ico:"🗓️",vocab:["今天(jīntiān)–today","明天(míngtiān)–tomorrow","年(nián)–year","月(yuè)–month","星期(xīngqī)–week","几点(jǐ diǎn)–what time"]},
+    {id:"1-6",title:"Basic Questions",ico:"❓",vocab:["什么(shénme)–what","哪(nǎ)–where","谁(shuí)–who","怎么(zěnme)–how","多少(duōshao)–how many","为什么(wèishénme)–why"]},
+  ],
+  2:[
+    {id:"2-1",title:"Daily Routines",ico:"☀️",vocab:["起床(qǐchuáng)–get up","吃饭(chīfàn)–eat","工作(gōngzuò)–work","睡觉(shuìjiào)–sleep","学习(xuéxí)–study","洗澡(xǐzǎo)–shower"]},
+    {id:"2-2",title:"Shopping",ico:"🛒",vocab:["买(mǎi)–buy","贵(guì)–expensive","便宜(piányí)–cheap","钱(qián)–money","多少钱–how much","打折(dǎzhé)–discount"]},
+    {id:"2-3",title:"Weather",ico:"🌤️",vocab:["天气(tiānqì)–weather","热(rè)–hot","冷(lěng)–cold","下雨(xià yǔ)–rain","晴天(qíngtiān)–sunny","刮风(guā fēng)–windy"]},
+    {id:"2-4",title:"Transport",ico:"🚌",vocab:["公交车–bus","出租车–taxi","地铁(dìtiě)–subway","骑车(qí chē)–cycle","走路(zǒulù)–walk","开车(kāi chē)–drive"]},
+    {id:"2-5",title:"Food & Drink",ico:"🍜",vocab:["米饭(mǐfàn)–rice","面条(miàntiáo)–noodles","茶(chá)–tea","咖啡(kāfēi)–coffee","好吃(hǎochī)–delicious","喝(hē)–drink"]},
+    {id:"2-6",title:"Hobbies",ico:"🎵",vocab:["看书–read books","运动(yùndòng)–exercise","唱歌(chànggē)–sing","跳舞(tiàowǔ)–dance","画画(huà huà)–draw","听音乐–listen to music"]},
+  ],
+  3:[
+    {id:"3-1",title:"Work & Office",ico:"💼",vocab:["公司(gōngsī)–company","经理(jīnglǐ)–manager","同事(tóngshì)–colleague","会议(huìyì)–meeting","文件(wénjiàn)–document","电脑(diànnǎo)–computer"]},
+    {id:"3-2",title:"Health",ico:"🏥",vocab:["医院(yīyuàn)–hospital","医生(yīshēng)–doctor","生病(shēngbìng)–sick","药(yào)–medicine","头疼(tóuténg)–headache","发烧(fāshāo)–fever"]},
+    {id:"3-3",title:"Emotions",ico:"💭",vocab:["高兴(gāoxìng)–happy","难过(nánguò)–sad","生气(shēngqì)–angry","担心(dānxīn)–worried","紧张(jǐnzhāng)–nervous","放松(fàngsōng)–relax"]},
+    {id:"3-4",title:"Travel",ico:"✈️",vocab:["旅游(lǚyóu)–travel","宾馆(bīnguǎn)–hotel","地图(dìtú)–map","护照(hùzhào)–passport","机场(jīchǎng)–airport","预订(yùdìng)–reserve"]},
+    {id:"3-5",title:"Festivals",ico:"🏮",vocab:["文化(wénhuà)–culture","传统(chuántǒng)–tradition","节日(jiérì)–festival","春节(Chūnjié)–Spring Festival","红包(hóngbāo)–red envelope","习惯(xíguàn)–custom"]},
+    {id:"3-6",title:"Complex Sentences",ico:"📝",vocab:["虽然…但是–although…but","因为…所以–because…so","如果…就–if…then","一边…一边–while…also","除了…以外–apart from","不但…而且–not only…but also"]},
+  ]
+};
+
+const TURNS_NEEDED = 5;
+let apiKey = '', gender = 'female', charMode = 'normal', currentHsk = 1;
+let progress = {}, msgs = [], turns = 0, quizMode = false, passed = false, quizFailed = false;
+let currentChapter = null, synth = window.speechSynthesis, rec = null, listening = false, voicesList = [];
+
+function loadState() {
+  apiKey = localStorage.getItem('hsk_key') || '';
+  gender = localStorage.getItem('hsk_gender') || 'female';
+  charMode = localStorage.getItem('hsk_char') || 'normal';
+  progress = JSON.parse(localStorage.getItem('hsk_progress') || 'null') || buildInitialProgress();
+}
+
+function buildInitialProgress() {
+  const p = {};
+  [1,2,3].forEach(l => CUR[l].forEach((c,i) => { p[c.id] = i === 0 ? 'active' : 'locked'; }));
+  return p;
+}
+
+function saveState() {
+  localStorage.setItem('hsk_key', apiKey);
+  localStorage.setItem('hsk_gender', gender);
+  localStorage.setItem('hsk_char', charMode);
+  localStorage.setItem('hsk_progress', JSON.stringify(progress));
+}
+
+function startApp() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k) { alert('Please enter your Gemini API key first.\nGet it free at aistudio.google.com'); return; }
+  apiKey = k;
+  saveState();
+  showHome();
+}
+
+function showHome() {
+  showScreen('home');
+  renderControls();
+  renderHskTabs();
+  renderChapters();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function renderControls() {
+  ['female','male'].forEach(g => document.getElementById('pill-'+g).className = 'pill' + (gender===g?' on':''));
+  ['normal','strict'].forEach(c => document.getElementById('pill-'+c).className = 'pill' + (charMode===c?' on-green':''));
+}
+
+function renderHskTabs() {
+  [1,2,3].forEach(l => {
+    const done = CUR[l].filter(c => progress[c.id]==='mastered').length;
+    document.getElementById('tab-'+l).className = 'hsk-tab' + (currentHsk===l?' active':'');
+    document.getElementById('p'+l).textContent = `(${done}/6)`;
+  });
+  const done = CUR[currentHsk].filter(c => progress[c.id]==='mastered').length;
+  document.getElementById('level-progress').style.width = Math.round(done/6*100) + '%';
+  document.getElementById('level-label').textContent = `${done} of 6 chapters mastered`;
+}
+
+function renderChapters() {
+  const g = document.getElementById('chapters-grid');
+  g.innerHTML = '';
+  CUR[currentHsk].forEach((ch, i) => {
+    const s = progress[ch.id] || 'locked';
+    const div = document.createElement('div');
+    div.className = 'chapter-card' + (s==='locked'?' locked':s==='active'?' active':' mastered');
+    div.innerHTML = `
+      <div class="ch-ico">${ch.ico}</div>
+      <div class="ch-num">Ch ${i+1}</div>
+      <div class="ch-title">${ch.title}</div>
+      <div class="ch-status ${s==='active'?'s-active':s==='locked'?'s-locked':'s-mastered'}">
+        ${s==='mastered'?'✓ Mastered':s==='locked'?'🔒 Locked':'▶ Start lesson'}
+      </div>
+      ${s==='mastered'?'<div class="mastered-badge">✓</div>':''}
+    `;
+    if (s !== 'locked') div.onclick = () => openChapter(ch);
+    g.appendChild(div);
+  });
+}
+
+function setGender(g) { gender = g; saveState(); renderControls(); }
+function setChar(c) { charMode = c; saveState(); renderControls(); }
+function setHsk(l) { currentHsk = l; renderHskTabs(); renderChapters(); }
+
+// LESSON
+function openChapter(ch) {
+  currentChapter = ch;
+  msgs = []; turns = 0; quizMode = false; passed = false; quizFailed = false;
+  document.getElementById('lesson-title').textContent = ch.title;
+  document.getElementById('lesson-badge').textContent = 'HSK ' + currentHsk;
+  showScreen('lesson');
+  renderVocabStrip();
+  updateLessonUI();
+  const intro = charMode === 'strict'
+    ? `Lesson: ${ch.title}. HSK ${currentHsk}. Focus and respond in Chinese.`
+    : `Welcome! Today we learn "${ch.title}" (HSK ${currentHsk}). 你好! Say 你好 to start! 😊`;
+  addMsg('ai', intro);
+  speak(intro);
+}
+
+function renderVocabStrip() {
+  const strip = document.getElementById('vocab-strip');
+  strip.innerHTML = '';
+  currentChapter.vocab.forEach(v => {
+    const word = v.split('(')[0].split('–')[0].trim();
+    const span = document.createElement('span');
+    span.className = 'vocab-chip';
+    span.textContent = word;
+    span.onclick = () => { document.getElementById('text-input').value = word; };
+    strip.appendChild(span);
+  });
+}
+
+function updateLessonUI() {
+  const t = Math.min(turns, TURNS_NEEDED);
+  document.getElementById('turns-fill').style.width = Math.round(t/TURNS_NEEDED*100) + '%';
+  const qBtn = document.getElementById('quiz-btn');
+  const pBtn = document.getElementById('pass-btn');
+  const fBtn = document.getElementById('fail-btn');
+  qBtn.classList.add('hidden'); pBtn.classList.add('hidden'); fBtn.classList.add('hidden');
+  if (passed) { pBtn.classList.remove('hidden'); document.getElementById('lesson-sub').textContent = '🎉 Quiz passed!'; }
+  else if (quizFailed) { fBtn.classList.remove('hidden'); document.getElementById('lesson-sub').textContent = '✕ Quiz failed — keep practicing'; }
+  else if (!quizMode && turns >= TURNS_NEEDED) { qBtn.classList.remove('hidden'); document.getElementById('lesson-sub').textContent = 'Ready for quiz!'; }
+  else if (quizMode) { document.getElementById('lesson-sub').textContent = '📝 Quiz in progress…'; }
+  else { document.getElementById('lesson-sub').textContent = `${turns}/${TURNS_NEEDED} practice turns`; }
+}
+
+function addMsg(role, text) {
+  msgs.push({role, content: text});
+  const area = document.getElementById('chat-area');
+  const d = document.createElement('div');
+  d.className = 'msg ' + (role==='ai'?'ai':'user');
+  d.textContent = text;
+  area.appendChild(d);
+  area.scrollTop = area.scrollHeight;
+}
+
+function showTyping() {
+  const area = document.getElementById('chat-area');
+  const d = document.createElement('div');
+  d.className = 'typing'; d.id = 'typing-dots';
+  d.innerHTML = '<span></span><span></span><span></span>';
+  area.appendChild(d);
+  area.scrollTop = area.scrollHeight;
+}
+
+function removeTyping() {
+  const d = document.getElementById('typing-dots');
+  if (d) d.remove();
+}
+
+function buildSystem(isQuiz) {
+  const ch = currentChapter;
+  const p = charMode === 'strict'
+    ? 'You are a strict Chinese teacher (严师). Correct every mistake firmly. Short responses only. Be demanding but fair.'
+    : 'You are a warm friendly Chinese teacher. Celebrate effort, gently correct errors. Be encouraging and fun.';
+  if (isQuiz) return `${p}\n\nYou are quizzing the student on HSK ${currentHsk}: "${ch.title}".\nVocab: ${ch.vocab.join(' | ')}\n\nQuiz rules:\n- Ask exactly ONE question at a time (3 questions total)\n- Keep each question short\n- After each answer, briefly evaluate it (1 sentence)\n- After the 3rd answer evaluation, you MUST write EXACTLY: "FINAL RESULT: PASS" if student got 2 or more correct, OR "FINAL RESULT: FAIL" if not\n- Never skip writing the FINAL RESULT line\n- Max 3 sentences per response`;
+  return `${p}\n\nYou are teaching HSK ${currentHsk}: "${ch.title}".\nVocab: ${ch.vocab.join(' | ')}\n\nTeaching rules:\n- Natural conversational teaching — don't lecture\n- Always include pinyin when writing Chinese characters\n- Practice vocab through conversation\n- Keep responses 2–3 sentences MAX\n- Mix English and Chinese naturally for a learner`;
+}
+
+async function callGemini(isQuiz) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+  const systemText = buildSystem(isQuiz);
+  const contents = msgs.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.content }] }));
+  if (!contents.length || contents[0].role === 'model') contents.unshift({ role: 'user', parts: [{ text: 'Hello, I am ready to learn.' }] });
+  const body = { system_instruction: { parts: [{ text: systemText }] }, contents, generationConfig: { maxOutputTokens: 200, temperature: 0.7 } };
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    if (res.status === 400 || res.status === 403) throw new Error('Invalid API key. Go to Settings ⚙️ and update your key.');
+    throw new Error('API error: ' + (err.error?.message || res.status));
+  }
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not respond.';
+}
+
+async function sendMsg() {
+  const input = document.getElementById('text-input');
+  const text = input.value.trim();
+  if (!text || !currentChapter) return;
+  input.value = '';
+  addMsg('user', text);
+  showTyping();
+  try {
+    const reply = await callGemini(quizMode);
+    removeTyping();
+    addMsg('ai', reply);
+    speak(reply);
+    if (quizMode) {
+      if (reply.includes('FINAL RESULT: PASS')) { passed = true; }
+      else if (reply.includes('FINAL RESULT: FAIL')) { quizFailed = true; }
+    } else {
+      turns++;
+    }
+    updateLessonUI();
+  } catch(e) {
+    removeTyping();
+    addMsg('ai', '⚠️ ' + e.message);
+  }
+}
+
+async function startQuiz() {
+  quizMode = true; quizFailed = false; passed = false;
+  document.getElementById('quiz-btn').classList.add('hidden');
+  updateLessonUI();
+  showTyping();
+  const prompt = 'The student is ready. Start the quiz. Ask question 1 of 3.';
+  msgs.push({ role: 'user', content: prompt });
+  try {
+    const reply = await callGemini(true);
+    removeTyping();
+    addMsg('ai', reply);
+    speak(reply);
+  } catch(e) {
+    removeTyping();
+    addMsg('ai', '⚠️ ' + e.message);
+    quizMode = false;
+  }
+  updateLessonUI();
+}
+
+function completeChapter() {
+  const chs = CUR[currentHsk];
+  const idx = chs.findIndex(c => c.id === currentChapter.id);
+  progress[currentChapter.id] = 'mastered';
+  if (idx + 1 < chs.length) progress[chs[idx+1].id] = 'active';
+  else if (currentHsk < 3) { progress[CUR[currentHsk+1][0].id] = 'active'; }
+  saveState();
+  goHome();
+}
+
+function retryLesson() {
+  quizMode = false; quizFailed = false; passed = false;
+  msgs = []; turns = 0;
+  document.getElementById('chat-area').innerHTML = '';
+  const retry = charMode === 'strict'
+    ? 'Quiz failed. Study again. I will re-test you.'
+    : 'No worries! Let\'s practice more. You\'ll get it! 加油 (jiāyóu)!';
+  addMsg('ai', retry);
+  speak(retry);
+  updateLessonUI();
+}
+
+function goHome() {
+  synth?.cancel();
+  showHome();
+}
+
+// VOICE OUTPUT
+function loadVoices() { voicesList = synth?.getVoices() || []; }
+if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
+
+function speak(text) {
+  if (!synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const zh = voicesList.filter(v => v.lang.startsWith('zh'));
+  const en = voicesList.filter(v => v.lang.startsWith('en'));
+  if (zh.length) {
+    u.voice = gender === 'female'
+      ? (zh.find(v => /ting|mei|xi|female/i.test(v.name)) || zh[0])
+      : (zh.find(v => /liang|male/i.test(v.name)) || zh[zh.length-1]);
+    u.lang = 'zh-CN';
+  } else if (en.length) {
+    u.voice = gender === 'female'
+      ? (en.find(v => /samantha|victoria|karen|female/i.test(v.name)) || en[0])
+      : (en.find(v => /alex|daniel|fred|male/i.test(v.name)) || en[en.length-1]);
+    u.lang = 'en-US';
+  }
+  u.rate = 0.85; u.pitch = gender === 'female' ? 1.1 : 0.85;
+  synth.speak(u);
+}
+
+// VOICE INPUT
+function startListen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Voice input needs Chrome browser.\nType your answer instead.'); return; }
+  try {
+    rec = new SR();
+    rec.lang = 'zh-CN'; rec.interimResults = false;
+    rec.onresult = e => { document.getElementById('text-input').value = e.results[0][0].transcript; stopListen(); };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    rec.start(); setListening(true);
+  } catch(e) { alert('Mic error. Type instead.'); }
+}
+
+function stopListen() { rec?.stop(); setListening(false); }
+function setListening(on) {
+  listening = on;
+  document.getElementById('mic-btn').className = 'mic-btn' + (on ? ' listening' : '');
+}
+function touchStart(e) { e.preventDefault(); startListen(); }
+function touchEnd(e) { e.preventDefault(); stopListen(); }
+function handleKey(e) { if (e.key === 'Enter') sendMsg(); }
+
+// SETTINGS
+function openSettings() {
+  document.getElementById('modal-key').value = apiKey;
+  document.getElementById('modal-bg').classList.remove('hidden');
+}
+function closeModal(e) { if (e.target.id==='modal-bg') closeModalBtn(); }
+function closeModalBtn() { document.getElementById('modal-bg').classList.add('hidden'); }
+function saveSettings() {
+  const k = document.getElementById('modal-key').value.trim();
+  if (k) { apiKey = k; saveState(); }
+  closeModalBtn();
+}
+function resetProgress() {
+  if (confirm('Reset ALL progress? This cannot be undone.')) {
+    progress = buildInitialProgress();
+    saveState();
+    closeModalBtn();
+    renderChapters();
+    renderHskTabs();
+  }
+}
+
+// INIT
+loadState();
+if (!apiKey) { showScreen('setup'); }
+else { showHome(); }
+</script>
+</body>
+</html>
